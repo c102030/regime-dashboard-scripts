@@ -3,7 +3,8 @@
 recession.json (the dashboard's own recession models) and digest.json (a short summary for the written readings),
 each as {rows, meta} except the digest. Standard library only; network via curl. A value read while its market is
 trading keeps the clock time of the reading.
-Usage: FRED_API_KEY=... python3 fetch_regime.py <output-dir> (without the key, FRED series and the US model are skipped)"""
+Usage: python3 fetch_regime.py <output-dir>. FRED series come from FRED's public CSV download, which needs no key;
+with FRED_API_KEY set, they come from FRED's API instead (the same observations)."""
 import csv, io, json, math, os, subprocess, sys, time, datetime as dt, urllib.parse as up
 from zoneinfo import ZoneInfo
 
@@ -14,6 +15,7 @@ SHOW = TODAY - dt.timedelta(days=372) # history kept for the charts
 ANCHOR = dt.date(2026, 10, 23) # last close before the presidential runoff
 S, problems = {}, [] # S[id] = sorted [(date, value)]
 LIVE = {} # id -> clock time (Sao Paulo) of a value read while its market was trading
+FRED_DOWN = [] # set when FRED's keyless download fails, so the run does not wait on it again
 
 def get(url, timeout=120):
     r = subprocess.run(["curl", "-sS", "-L", "--http1.1", "-m", str(timeout), "--retry", "2", "--retry-all-errors",
@@ -30,10 +32,22 @@ def put(sid, pairs, today=False):
 
 def fred(code, start=None, extra=""):
     key = os.environ.get("FRED_API_KEY")
-    if not key:
-        raise RuntimeError("needs a FRED API key")
-    u = f"https://api.stlouisfed.org/fred/series/observations?series_id={code}&api_key={key}&file_type=json&observation_start={start or START}{extra}"
-    return [(dt.date.fromisoformat(o["date"]), float(o["value"])) for o in json.loads(get(u))["observations"] if o["value"] not in ("", ".")]
+    if key:
+        u = f"https://api.stlouisfed.org/fred/series/observations?series_id={code}&api_key={key}&file_type=json&observation_start={start or START}{extra}"
+        return [(dt.date.fromisoformat(o["date"]), float(o["value"])) for o in json.loads(get(u))["observations"] if o["value"] not in ("", ".")]
+    # Without a key: the CSV behind FRED's own graphs, with the API's options under their graph names. It answers
+    # curl's own client name and refuses others, so no -A here; after one failure the rest of FRED is skipped at once.
+    if FRED_DOWN:
+        raise RuntimeError("FRED's CSV download did not answer earlier in this run")
+    graph = extra.replace("&frequency=m", "&fq=Monthly").replace("&aggregation_method=", "&fam=").replace("&units=", "&transformation=")
+    r = subprocess.run(["curl", "-sS", "-L", "--http1.1", "-m", "45", f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={code}&cosd={start or START}{graph}"],
+                       capture_output=True)
+    rows = list(csv.reader(io.StringIO(r.stdout.decode(errors="replace")))) if r.returncode == 0 else []
+    if not rows or rows[0][0].strip().lower() not in ("observation_date", "date"):
+        FRED_DOWN.append(code)
+        raise RuntimeError("FRED's CSV download did not answer: " + (r.stderr.decode()[:120] or "unexpected answer"))
+    time.sleep(0.4)  # spaced out, as a person clicking through FRED would be
+    return [(dt.date.fromisoformat(r[0]), float(r[1])) for r in rows[1:] if len(r) > 1 and r[1] not in ("", ".")]
 
 def treasury_us():
     def curve(kind):
