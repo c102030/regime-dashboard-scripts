@@ -7,7 +7,8 @@ The file has one line per section and language: <section>|<en or pt>|<headline>|
 Prints one JSON line {"ok", "problems"}. Each problem names its section and language.
 
 What it checks:
-- every section has both languages; the headline has at most 12 words and no final period; the text at most 70 words;
+- every section has both languages; the headline has at most 12 words and no final period; the text at most 70 words
+  in English and 85 in Portuguese, which runs longer for the same content;
 - a sentence that calls something unchanged, stable, steady or flat names the date or month of the observation it
   rests on. A figure that simply has no newer observation has not been shown to be stable: say which date it is from;
 - no sentence states or rules out a cause (because, due to, rather than...): say what moved and when, and use
@@ -42,8 +43,9 @@ def check(lines):
             problems.append(f"{tag}: the headline has {words(head)} words, at most 12")
         if head.endswith("."):
             problems.append(f"{tag}: the headline ends with a period")
-        if words(text) > 70:
-            problems.append(f"{tag}: the text has {words(text)} words, at most 70")
+        limit = 70 if lang == "en" else 85
+        if words(text) > limit:
+            problems.append(f"{tag}: the text has {words(text)} words, at most {limit}")
         for s in sentences(head) + sentences(text):
             if STABLE.search(s) and not DATED.search(s):
                 problems.append(f"{tag}: \"{STABLE.search(s).group(0)}\" without the date of the observation; a figure with no newer "

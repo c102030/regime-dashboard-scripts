@@ -237,7 +237,9 @@ class Readings(unittest.TestCase):
         self.assertTrue(any("ends with a period" in p for p in problems))
         self.assertTrue(any("us: needs both" in p for p in problems))
         self.assertTrue(any('"will"' in p for p in problems))
-        self.assertTrue(any("70" in p for p in C.check(["us|en|Head|" + " ".join(["w"] * 71), "us|pt|Head|ok"])))
+        self.assertTrue(any("at most 70" in p for p in C.check(["us|en|Head|" + " ".join(["w"] * 71), "us|pt|Head|ok"])))
+        self.assertEqual(C.check(["us|en|Head|ok", "us|pt|Head|" + " ".join(["w"] * 85)]), [])
+        self.assertTrue(any("at most 85" in p for p in C.check(["us|en|Head|ok", "us|pt|Head|" + " ".join(["w"] * 86)])))
 
 
 if __name__ == "__main__":
