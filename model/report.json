@@ -1,0 +1,903 @@
+{
+ "horizon_months": 12,
+ "embargo_months": 24,
+ "data_snapshot": "2026-11-18",
+ "united_states": {
+  "production": {
+   "inputs": [
+    "spread",
+    "permits",
+    "nfci"
+   ],
+   "coefficients": {
+    "const": -0.3058,
+    "spread": -0.4781,
+    "permits": -0.0222,
+    "nfci": 0.9837
+   },
+   "p_values": {
+    "const": 0.004,
+    "spread": 0.0,
+    "permits": 0.0,
+    "nfci": 0.0
+   },
+   "means": {
+    "spread": 1.5549,
+    "permits": -0.4791,
+    "nfci": -0.0057
+   },
+   "fit_window": [
+    "1972-01-01",
+    "2024-10-01"
+   ],
+   "recessions_in_window": 7,
+   "in_sample": {
+    "months": 634,
+    "from": "1972-01-01",
+    "to": "2024-10-01",
+    "share_positive": 0.238,
+    "auc": 0.932,
+    "auc_90pct_interval": [
+     0.874,
+     0.975
+    ],
+    "auc_months_not_in_recession": 0.931,
+    "brier": 0.0844,
+    "brier_base_rate": 0.1814,
+    "brier_skill": 0.535,
+    "brier_skill_90pct_interval": [
+     0.353,
+     0.702
+    ],
+    "logloss": 0.268,
+    "logloss_base_rate": 0.549,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 362,
+      "mean_forecast": 3.2,
+      "share_followed_by_recession": 2.8
+     },
+     {
+      "range": "10-25%",
+      "months": 84,
+      "mean_forecast": 16.1,
+      "share_followed_by_recession": 15.5
+     },
+     {
+      "range": "25-50%",
+      "months": 68,
+      "mean_forecast": 38.5,
+      "share_followed_by_recession": 47.1
+     },
+     {
+      "range": "50-75%",
+      "months": 47,
+      "mean_forecast": 61.8,
+      "share_followed_by_recession": 59.6
+     },
+     {
+      "range": "75-100%",
+      "months": 73,
+      "mean_forecast": 95.2,
+      "share_followed_by_recession": 93.2
+     }
+    ]
+   },
+   "leave_one_recession_out": {
+    "months": 301,
+    "from": "1972-01-01",
+    "to": "2021-04-01",
+    "share_positive": 0.502,
+    "auc": 0.877,
+    "auc_90pct_interval": [
+     0.804,
+     0.937
+    ],
+    "auc_months_not_in_recession": 0.875,
+    "brier": 0.1699,
+    "brier_base_rate": 0.3194,
+    "brier_skill": 0.468,
+    "brier_skill_90pct_interval": [
+     0.248,
+     0.652
+    ],
+    "logloss": 0.5285,
+    "logloss_base_rate": 0.8553,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 108,
+      "mean_forecast": 3.5,
+      "share_followed_by_recession": 13.9
+     },
+     {
+      "range": "10-25%",
+      "months": 43,
+      "mean_forecast": 16.2,
+      "share_followed_by_recession": 27.9
+     },
+     {
+      "range": "25-50%",
+      "months": 57,
+      "mean_forecast": 37.8,
+      "share_followed_by_recession": 73.7
+     },
+     {
+      "range": "50-75%",
+      "months": 24,
+      "mean_forecast": 60.7,
+      "share_followed_by_recession": 75.0
+     },
+     {
+      "range": "75-100%",
+      "months": 69,
+      "mean_forecast": 94.5,
+      "share_followed_by_recession": 92.8
+     }
+    ]
+   },
+   "walk_forward": {
+    "months": 418,
+    "from": "1990-01-01",
+    "to": "2024-10-01",
+    "share_positive": 0.179,
+    "auc": 0.854,
+    "auc_90pct_interval": [
+     0.729,
+     0.948
+    ],
+    "auc_months_not_in_recession": 0.883,
+    "brier": 0.1237,
+    "brier_base_rate": 0.1653,
+    "brier_skill": 0.251,
+    "brier_skill_90pct_interval": [
+     -0.173,
+     0.601
+    ],
+    "logloss": 0.3807,
+    "logloss_base_rate": 0.5164,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 266,
+      "mean_forecast": 2.5,
+      "share_followed_by_recession": 3.0
+     },
+     {
+      "range": "10-25%",
+      "months": 60,
+      "mean_forecast": 16.3,
+      "share_followed_by_recession": 33.3
+     },
+     {
+      "range": "25-50%",
+      "months": 31,
+      "mean_forecast": 36.1,
+      "share_followed_by_recession": 61.3
+     },
+     {
+      "range": "50-75%",
+      "months": 41,
+      "mean_forecast": 64.5,
+      "share_followed_by_recession": 46.3
+     },
+     {
+      "range": "75-100%",
+      "months": 20,
+      "mean_forecast": 88.6,
+      "share_followed_by_recession": 45.0
+     }
+    ]
+   }
+  },
+  "curve_only": {
+   "inputs": [
+    "spread"
+   ],
+   "coefficients": {
+    "const": -0.1186,
+    "spread": -0.4536
+   },
+   "p_values": {
+    "const": 0.142,
+    "spread": 0.0
+   },
+   "means": {
+    "spread": 1.5549
+   },
+   "fit_window": [
+    "1972-01-01",
+    "2024-10-01"
+   ],
+   "recessions_in_window": 7,
+   "in_sample": {
+    "months": 634,
+    "from": "1972-01-01",
+    "to": "2024-10-01",
+    "share_positive": 0.238,
+    "auc": 0.771,
+    "auc_90pct_interval": [
+     0.655,
+     0.868
+    ],
+    "auc_months_not_in_recession": 0.91,
+    "brier": 0.148,
+    "brier_base_rate": 0.1814,
+    "brier_skill": 0.185,
+    "brier_skill_90pct_interval": [
+     0.008,
+     0.322
+    ],
+    "logloss": 0.4637,
+    "logloss_base_rate": 0.549,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 167,
+      "mean_forecast": 6.8,
+      "share_followed_by_recession": 7.2
+     },
+     {
+      "range": "10-25%",
+      "months": 233,
+      "mean_forecast": 16.8,
+      "share_followed_by_recession": 15.0
+     },
+     {
+      "range": "25-50%",
+      "months": 169,
+      "mean_forecast": 35.8,
+      "share_followed_by_recession": 37.9
+     },
+     {
+      "range": "50-75%",
+      "months": 61,
+      "mean_forecast": 60.3,
+      "share_followed_by_recession": 59.0
+     },
+     {
+      "range": "75-100%",
+      "months": 4,
+      "mean_forecast": 83.8,
+      "share_followed_by_recession": 100.0
+     }
+    ]
+   },
+   "leave_one_recession_out": {
+    "months": 301,
+    "from": "1972-01-01",
+    "to": "2021-04-01",
+    "share_positive": 0.502,
+    "auc": 0.731,
+    "auc_90pct_interval": [
+     0.639,
+     0.832
+    ],
+    "auc_months_not_in_recession": 0.892,
+    "brier": 0.2633,
+    "brier_base_rate": 0.3194,
+    "brier_skill": 0.176,
+    "brier_skill_90pct_interval": [
+     0.043,
+     0.3
+    ],
+    "logloss": 0.7788,
+    "logloss_base_rate": 0.8553,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 74,
+      "mean_forecast": 5.9,
+      "share_followed_by_recession": 31.1
+     },
+     {
+      "range": "10-25%",
+      "months": 75,
+      "mean_forecast": 16.9,
+      "share_followed_by_recession": 40.0
+     },
+     {
+      "range": "25-50%",
+      "months": 122,
+      "mean_forecast": 37.0,
+      "share_followed_by_recession": 57.4
+     },
+     {
+      "range": "50-75%",
+      "months": 26,
+      "mean_forecast": 56.9,
+      "share_followed_by_recession": 92.3
+     },
+     {
+      "range": "75-100%",
+      "months": 4,
+      "mean_forecast": 82.1,
+      "share_followed_by_recession": 100.0
+     }
+    ]
+   },
+   "walk_forward": {
+    "months": 418,
+    "from": "1990-01-01",
+    "to": "2024-10-01",
+    "share_positive": 0.179,
+    "auc": 0.665,
+    "auc_90pct_interval": [
+     0.524,
+     0.826
+    ],
+    "auc_months_not_in_recession": 0.863,
+    "brier": 0.1821,
+    "brier_base_rate": 0.1653,
+    "brier_skill": -0.102,
+    "brier_skill_90pct_interval": [
+     -0.484,
+     0.19
+    ],
+    "logloss": 0.5478,
+    "logloss_base_rate": 0.5164,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 108,
+      "mean_forecast": 5.1,
+      "share_followed_by_recession": 11.1
+     },
+     {
+      "range": "10-25%",
+      "months": 92,
+      "mean_forecast": 17.2,
+      "share_followed_by_recession": 13.0
+     },
+     {
+      "range": "25-50%",
+      "months": 110,
+      "mean_forecast": 36.0,
+      "share_followed_by_recession": 10.9
+     },
+     {
+      "range": "50-75%",
+      "months": 82,
+      "mean_forecast": 60.7,
+      "share_followed_by_recession": 41.5
+     },
+     {
+      "range": "75-100%",
+      "months": 26,
+      "mean_forecast": 80.0,
+      "share_followed_by_recession": 19.2
+     }
+    ]
+   }
+  }
+ },
+ "brazil": {
+  "production": {
+   "inputs": [
+    "dselic",
+    "ibc"
+   ],
+   "coefficients": {
+    "const": -0.3817,
+    "dselic": 0.0618,
+    "ibc": -0.1015
+   },
+   "p_values": {
+    "const": 0.0,
+    "dselic": 0.019,
+    "ibc": 0.0
+   },
+   "means": {
+    "dselic": -0.5561,
+    "ibc": 1.9677
+   },
+   "fit_window": [
+    "2003-07-01",
+    "2024-12-01"
+   ],
+   "recessions_in_window": 3,
+   "in_sample": {
+    "months": 258,
+    "from": "2003-07-01",
+    "to": "2024-12-01",
+    "share_positive": 0.302,
+    "auc": 0.758,
+    "auc_90pct_interval": [
+     0.605,
+     0.868
+    ],
+    "auc_months_not_in_recession": 0.581,
+    "brier": 0.1713,
+    "brier_base_rate": 0.2109,
+    "brier_skill": 0.188,
+    "brier_skill_90pct_interval": [
+     0.009,
+     0.334
+    ],
+    "logloss": 0.5125,
+    "logloss_base_rate": 0.6128,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 34,
+      "mean_forecast": 5.3,
+      "share_followed_by_recession": 2.9
+     },
+     {
+      "range": "10-25%",
+      "months": 90,
+      "mean_forecast": 17.8,
+      "share_followed_by_recession": 22.2
+     },
+     {
+      "range": "25-50%",
+      "months": 95,
+      "mean_forecast": 35.5,
+      "share_followed_by_recession": 32.6
+     },
+     {
+      "range": "50-75%",
+      "months": 28,
+      "mean_forecast": 60.0,
+      "share_followed_by_recession": 60.7
+     },
+     {
+      "range": "75-100%",
+      "months": 11,
+      "mean_forecast": 85.3,
+      "share_followed_by_recession": 81.8
+     }
+    ]
+   },
+   "leave_one_recession_out": {
+    "months": 153,
+    "from": "2006-10-01",
+    "to": "2021-06-01",
+    "share_positive": 0.51,
+    "auc": 0.705,
+    "auc_90pct_interval": [
+     0.607,
+     0.804
+    ],
+    "auc_months_not_in_recession": 0.576,
+    "brier": 0.3124,
+    "brier_base_rate": 0.293,
+    "brier_skill": -0.067,
+    "brier_skill_90pct_interval": [
+     -0.177,
+     0.062
+    ],
+    "logloss": 0.8649,
+    "logloss_base_rate": 0.7863,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 35,
+      "mean_forecast": 4.0,
+      "share_followed_by_recession": 17.1
+     },
+     {
+      "range": "10-25%",
+      "months": 60,
+      "mean_forecast": 18.5,
+      "share_followed_by_recession": 50.0
+     },
+     {
+      "range": "25-50%",
+      "months": 45,
+      "mean_forecast": 33.1,
+      "share_followed_by_recession": 77.8
+     },
+     {
+      "range": "50-75%",
+      "months": 3,
+      "mean_forecast": 65.5,
+      "share_followed_by_recession": 33.3
+     },
+     {
+      "range": "75-100%",
+      "months": 10,
+      "mean_forecast": 92.4,
+      "share_followed_by_recession": 60.0
+     }
+    ]
+   },
+   "walk_forward": {
+    "months": 156,
+    "from": "2012-01-01",
+    "to": "2024-12-01",
+    "share_positive": 0.391,
+    "auc": 0.575,
+    "auc_90pct_interval": [
+     0.328,
+     0.815
+    ],
+    "auc_months_not_in_recession": 0.514,
+    "brier": 0.2882,
+    "brier_base_rate": 0.2984,
+    "brier_skill": 0.034,
+    "brier_skill_90pct_interval": [
+     -0.501,
+     0.264
+    ],
+    "logloss": 0.777,
+    "logloss_base_rate": 0.8326,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 7,
+      "mean_forecast": 3.4,
+      "share_followed_by_recession": 0.0
+     },
+     {
+      "range": "10-25%",
+      "months": 58,
+      "mean_forecast": 18.0,
+      "share_followed_by_recession": 31.0
+     },
+     {
+      "range": "25-50%",
+      "months": 64,
+      "mean_forecast": 35.7,
+      "share_followed_by_recession": 60.9
+     },
+     {
+      "range": "50-75%",
+      "months": 13,
+      "mean_forecast": 63.3,
+      "share_followed_by_recession": 15.4
+     },
+     {
+      "range": "75-100%",
+      "months": 14,
+      "mean_forecast": 83.3,
+      "share_followed_by_recession": 14.3
+     }
+    ]
+   }
+  },
+  "activity_as_published": {
+   "inputs": [
+    "dselic",
+    "ibc_known"
+   ],
+   "coefficients": {
+    "const": -0.4303,
+    "dselic": 0.0893,
+    "ibc_known": -0.0469
+   },
+   "p_values": {
+    "const": 0.0,
+    "dselic": 0.0,
+    "ibc_known": 0.001
+   },
+   "means": {
+    "dselic": -0.6107,
+    "ibc_known": 1.9582
+   },
+   "fit_window": [
+    "2003-09-01",
+    "2024-12-01"
+   ],
+   "recessions_in_window": 3,
+   "in_sample": {
+    "months": 256,
+    "from": "2003-09-01",
+    "to": "2024-12-01",
+    "share_positive": 0.305,
+    "auc": 0.702,
+    "auc_90pct_interval": [
+     0.516,
+     0.836
+    ],
+    "auc_months_not_in_recession": 0.574,
+    "brier": 0.1934,
+    "brier_base_rate": 0.2119,
+    "brier_skill": 0.087,
+    "brier_skill_90pct_interval": [
+     -0.133,
+     0.235
+    ],
+    "logloss": 0.5609,
+    "logloss_base_rate": 0.6148,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 16,
+      "mean_forecast": 6.3,
+      "share_followed_by_recession": 0.0
+     },
+     {
+      "range": "10-25%",
+      "months": 89,
+      "mean_forecast": 17.5,
+      "share_followed_by_recession": 15.7
+     },
+     {
+      "range": "25-50%",
+      "months": 123,
+      "mean_forecast": 36.3,
+      "share_followed_by_recession": 43.1
+     },
+     {
+      "range": "50-75%",
+      "months": 27,
+      "mean_forecast": 56.9,
+      "share_followed_by_recession": 40.7
+     },
+     {
+      "range": "75-100%",
+      "months": 1,
+      "mean_forecast": 78.8,
+      "share_followed_by_recession": 0.0
+     }
+    ]
+   },
+   "leave_one_recession_out": {
+    "months": 153,
+    "from": "2006-10-01",
+    "to": "2021-06-01",
+    "share_positive": 0.51,
+    "auc": 0.716,
+    "auc_90pct_interval": [
+     0.59,
+     0.815
+    ],
+    "auc_months_not_in_recession": 0.662,
+    "brier": 0.3499,
+    "brier_base_rate": 0.292,
+    "brier_skill": -0.199,
+    "brier_skill_90pct_interval": [
+     -0.289,
+     -0.067
+    ],
+    "logloss": 0.9481,
+    "logloss_base_rate": 0.784,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 23,
+      "mean_forecast": 6.4,
+      "share_followed_by_recession": 8.7
+     },
+     {
+      "range": "10-25%",
+      "months": 102,
+      "mean_forecast": 18.9,
+      "share_followed_by_recession": 62.7
+     },
+     {
+      "range": "25-50%",
+      "months": 17,
+      "mean_forecast": 33.4,
+      "share_followed_by_recession": 52.9
+     },
+     {
+      "range": "50-75%",
+      "months": 8,
+      "mean_forecast": 63.4,
+      "share_followed_by_recession": 37.5
+     },
+     {
+      "range": "75-100%",
+      "months": 3,
+      "mean_forecast": 90.9,
+      "share_followed_by_recession": 0.0
+     }
+    ]
+   },
+   "walk_forward": {
+    "months": 156,
+    "from": "2012-01-01",
+    "to": "2024-12-01",
+    "share_positive": 0.391,
+    "auc": 0.546,
+    "auc_90pct_interval": [
+     0.291,
+     0.815
+    ],
+    "auc_months_not_in_recession": 0.561,
+    "brier": 0.3398,
+    "brier_base_rate": 0.2979,
+    "brier_skill": -0.141,
+    "brier_skill_90pct_interval": [
+     -0.897,
+     0.178
+    ],
+    "logloss": 0.9395,
+    "logloss_base_rate": 0.8299,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 19,
+      "mean_forecast": 6.2,
+      "share_followed_by_recession": 0.0
+     },
+     {
+      "range": "10-25%",
+      "months": 54,
+      "mean_forecast": 18.7,
+      "share_followed_by_recession": 44.4
+     },
+     {
+      "range": "25-50%",
+      "months": 58,
+      "mean_forecast": 32.6,
+      "share_followed_by_recession": 63.8
+     },
+     {
+      "range": "50-75%",
+      "months": 7,
+      "mean_forecast": 64.7,
+      "share_followed_by_recession": 0.0
+     },
+     {
+      "range": "75-100%",
+      "months": 18,
+      "mean_forecast": 89.2,
+      "share_followed_by_recession": 0.0
+     }
+    ]
+   }
+  },
+  "policy_rate_only": {
+   "inputs": [
+    "dselic"
+   ],
+   "coefficients": {
+    "const": -0.5045,
+    "dselic": 0.0895
+   },
+   "p_values": {
+    "const": 0.0,
+    "dselic": 0.0
+   },
+   "means": {
+    "dselic": -0.5561
+   },
+   "fit_window": [
+    "2003-07-01",
+    "2024-12-01"
+   ],
+   "recessions_in_window": 3,
+   "in_sample": {
+    "months": 258,
+    "from": "2003-07-01",
+    "to": "2024-12-01",
+    "share_positive": 0.302,
+    "auc": 0.686,
+    "auc_90pct_interval": [
+     0.516,
+     0.827
+    ],
+    "auc_months_not_in_recession": 0.637,
+    "brier": 0.2031,
+    "brier_base_rate": 0.2109,
+    "brier_skill": 0.037,
+    "brier_skill_90pct_interval": [
+     -0.157,
+     0.143
+    ],
+    "logloss": 0.5841,
+    "logloss_base_rate": 0.6128,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 7,
+      "mean_forecast": 8.3,
+      "share_followed_by_recession": 0.0
+     },
+     {
+      "range": "10-25%",
+      "months": 95,
+      "mean_forecast": 20.2,
+      "share_followed_by_recession": 10.5
+     },
+     {
+      "range": "25-50%",
+      "months": 141,
+      "mean_forecast": 34.6,
+      "share_followed_by_recession": 48.2
+     },
+     {
+      "range": "50-75%",
+      "months": 15,
+      "mean_forecast": 57.6,
+      "share_followed_by_recession": 0.0
+     }
+    ]
+   },
+   "leave_one_recession_out": {
+    "months": 153,
+    "from": "2006-10-01",
+    "to": "2021-06-01",
+    "share_positive": 0.51,
+    "auc": 0.755,
+    "auc_90pct_interval": [
+     0.63,
+     0.884
+    ],
+    "auc_months_not_in_recession": 0.834,
+    "brier": 0.3312,
+    "brier_base_rate": 0.293,
+    "brier_skill": -0.131,
+    "brier_skill_90pct_interval": [
+     -0.245,
+     0.037
+    ],
+    "logloss": 0.8912,
+    "logloss_base_rate": 0.7863,
+    "calibration": [
+     {
+      "range": "10-25%",
+      "months": 129,
+      "mean_forecast": 18.7,
+      "share_followed_by_recession": 45.7
+     },
+     {
+      "range": "25-50%",
+      "months": 24,
+      "mean_forecast": 29.1,
+      "share_followed_by_recession": 79.2
+     }
+    ]
+   },
+   "walk_forward": {
+    "months": 156,
+    "from": "2012-01-01",
+    "to": "2024-12-01",
+    "share_positive": 0.391,
+    "auc": 0.543,
+    "auc_90pct_interval": [
+     0.287,
+     0.827
+    ],
+    "auc_months_not_in_recession": 0.552,
+    "brier": 0.3372,
+    "brier_base_rate": 0.2984,
+    "brier_skill": -0.13,
+    "brier_skill_90pct_interval": [
+     -0.835,
+     0.168
+    ],
+    "logloss": 0.9327,
+    "logloss_base_rate": 0.8326,
+    "calibration": [
+     {
+      "range": "0-10%",
+      "months": 11,
+      "mean_forecast": 6.3,
+      "share_followed_by_recession": 0.0
+     },
+     {
+      "range": "10-25%",
+      "months": 69,
+      "mean_forecast": 18.3,
+      "share_followed_by_recession": 42.0
+     },
+     {
+      "range": "25-50%",
+      "months": 53,
+      "mean_forecast": 31.5,
+      "share_followed_by_recession": 60.4
+     },
+     {
+      "range": "50-75%",
+      "months": 7,
+      "mean_forecast": 61.6,
+      "share_followed_by_recession": 0.0
+     },
+     {
+      "range": "75-100%",
+      "months": 16,
+      "mean_forecast": 89.5,
+      "share_followed_by_recession": 0.0
+     }
+    ]
+   }
+  }
+ },
+ "us_matches_production": true,
+ "br_matches_production": true
+}

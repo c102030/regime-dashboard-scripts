@@ -2,9 +2,13 @@
 """Leading indicators vs markets (Brazil + US). Pulls free public series and writes latest.json and series.json,
 recession.json (the dashboard's own recession models) and digest.json (a short summary for the written readings),
 each as {rows, meta} except the digest. Standard library only; network via curl. A value read while its market is
-trading keeps the clock time of the reading.
+trading keeps the clock time of the reading (São Paulo time); every other value is the last close or official figure
+before today, with its own date.
+recession.json is written only when both models were computed: one country alone would leave the other's panel on
+the page frozen without saying so. If an essential series is missing the run fails and writes nothing useful, so the
+page keeps its last complete refresh.
 Usage: python3 fetch_regime.py <output-dir>. FRED series come from FRED's public CSV download, which needs no key;
-with FRED_API_KEY set, they come from FRED's API instead (the same observations)."""
+with FRED_API_KEY set, they come from FRED's API instead (the same observations). Tests: python3 -m unittest discover tests."""
 import csv, io, json, math, os, subprocess, sys, time, datetime as dt, urllib.parse as up
 from zoneinfo import ZoneInfo
 
@@ -180,6 +184,8 @@ def derived():
         del S["us_cpi"]
 
 # id: (name, region, role, unit, decimals, change kind, stress direction, source)
+# Stress direction: 1 when a rise is stress, -1 when a fall is, 0 when the series is not scored. Curve slopes and policy rates
+# are not scored in either country: neither direction is clearly good.
 IND = {
  "usdbrl": ("US dollar in reais, official fixing (PTAX)", "Brazil", "market", "R$", 4, "pct", 1, "Banco Central SGS 1"),
  "peers": ("Emerging-market peer currencies vs the dollar (Mexico, South Africa, Indonesia, India, Korea, Poland), runoff eve = 100", "Brazil", "market", "index", 1, "pct", 1, "European Central Bank reference rates, own calculation"),
@@ -188,7 +194,7 @@ IND = {
  "ibov_usd": ("Ibovespa in US dollars", "Brazil", "market", "US$", 0, "pct", -1, "Yahoo Finance and Banco Central, own calculation"),
  "br_nom_long": ("Long fixed-rate government bond yield", "Brazil", "market", "%", 2, "diff", 1, "Tesouro Transparente"),
  "br_nom_short": ("Short fixed-rate government bond yield", "Brazil", "market", "%", 2, "diff", 1, "Tesouro Transparente"),
- "br_slope": ("Fixed-rate curve slope, long minus short", "Brazil", "leading", "pp", 2, "diff", 1, "Tesouro Transparente, own calculation"),
+ "br_slope": ("Fixed-rate curve slope, long minus short", "Brazil", "leading", "pp", 2, "diff", 0, "Tesouro Transparente, own calculation"),
  "br_real_long": ("Long inflation-linked bond real yield", "Brazil", "market", "%", 2, "diff", 1, "Tesouro Transparente"),
  "br_breakeven": ("Implied inflation, fixed versus inflation-linked", "Brazil", "leading", "%", 2, "diff", 1, "Tesouro Transparente, own calculation"),
  "focus_ipca": ("Focus survey: inflation expected for next year", "Brazil", "leading", "%", 2, "diff", 1, "Banco Central Focus"),
@@ -221,56 +227,15 @@ JOBS = [("usdbrl", ptax, 1), ("selic", sgs, 432), ("br_ipca12", sgs, 13522), ("b
         ("us_hy", fred, "BAMLH0A0HYM2"), ("us_claims", fred, "ICSA"), ("us_permits", fred, "PERMIT"), ("us_lending", fred, "DRTSCILM"),
         ("us_nfci", fred, "NFCI"), ("fed_funds", fred, "DFEDTARU"), ("us_unemp", fred, "UNRATE"), ("us_cpi", fred, "CPIAUCSL")]
 
-notes = {}
-for sid, fn, arg in JOBS:
-    try:
-        put(sid, fn(arg), fn in (ptax, yahoo))
-        if arg in LIVE:
-            LIVE[sid] = LIVE.pop(arg)
-    except Exception as e:
-        problems.append(f"{sid}: {e}")
-for name, fn in (("tesouro", tesouro), ("treasury_us", treasury_us), ("ecb_fx", ecb_fx)):
-    try:
-        notes = fn() or notes
-    except Exception as e:
-        problems.append(f"{name}: {e}")
-try:
-    derived()
-except Exception as e:
-    problems.append(f"derived: {e}")
-if "us_claims" in S:
-    S["us_claims"] = [(d, v / 1000) for d, v in S["us_claims"]]
+# Without any of these the page's main reads cannot be trusted: the run fails instead of publishing a partial refresh.
+ESSENTIAL = ("usdbrl", "brl_resid", "ibov", "br_nom_long", "spx", "us10y")
+# Series that tend to move together count as one group, so that a tally of signals is not read as that many separate confirmations.
+GROUPS = {"currency": ("usdbrl", "peers", "brl_resid", "dxy"), "stocks": ("ibov", "ibov_usd", "spx", "vix"),
+          "rates": ("br_nom_long", "br_nom_short", "br_real_long", "us10y", "us_real10"),
+          "inflation": ("br_breakeven", "focus_ipca", "focus_selic", "br_ipca12", "us_be10", "us_cpi_yoy"),
+          "credit": ("br_delinq", "us_hy", "us_lending", "us_nfci"), "jobs and housing": ("br_unemp", "us_claims", "us_permits", "us_unemp")}
+GROUP_OF = {sid: g for g, ids in GROUPS.items() for sid in ids}
 
-latest, series = [], []
-for sid, (name, region, role, unit, dec, kind, stress, source) in IND.items():
-    if sid not in S:
-        continue
-    pairs = S[sid]
-    day, val = pairs[-1]
-    def change(ref_day, slack):
-        ref = at(pairs, ref_day)
-        if not ref or ref[0] == day or (ref_day - ref[0]).days > slack: # no observation near enough: leave empty
-            return None
-        return (round((val / ref[1] - 1) * 100, 1) if kind == "pct" else round(val - ref[1], max(dec, 2))) + 0.0
-    latest.append({"id": sid, "name": name + (f" ({notes[sid]})" if sid in notes else ""), "region": region, "role": role,
-                   "unit": unit, "value": round(val, dec) + 0.0, "dec": dec, "as_of": day.isoformat(), "kind": kind, "stress": stress,
-                   "chg_1w": change(day - dt.timedelta(days=7), 6), "chg_1m": change(day - dt.timedelta(days=30), 15),
-                   "chg_3m": change(day - dt.timedelta(days=91), 45), "chg_runoff": change(ANCHOR, 6) if day > ANCHOR else None,
-                   "source": source})
-    if day == TODAY and sid in LIVE:
-        latest[-1]["as_of_time"] = LIVE[sid]
-    series += [{"id": sid, "date": d.isoformat(), "value": round(v, 4)} for d, v in pairs if d >= SHOW]
-
-if len(latest) < 20: # 25 series come from sources other than FRED; fewer than 20 means a source-wide failure
-    print(json.dumps({"ok": False, "series": len(latest), "problems": problems}))
-    sys.exit(2)
-meta = [{"label": "fetch_regime.py", "value": open(os.path.abspath(__file__), encoding="utf-8").read(), "type": "code", "lang": "python"},
-        {"label": "Inputs", "value": "Banco Central do Brasil (SGS, Focus), Tesouro Transparente, European Central Bank, US Treasury, FRED, Yahoo Finance"},
-        {"label": "Run", "value": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")},
-        {"label": "Skipped", "value": "; ".join(problems) or "none"}]
-for name, rows in (("latest.json", latest), ("series.json", series)):
-    with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
-        json.dump({"rows": rows, "meta": meta}, f, ensure_ascii=False, separators=(",", ":"))
 def read_at(k): # the same rule the dashboard page applies to the newest day
     gap, yld = S.get("brl_resid"), S.get("br_nom_long")
     if not gap or not yld or len(gap) < abs(k):
@@ -281,7 +246,9 @@ def read_at(k): # the same rule the dashboard page applies to the newest day
     if not week(gap) or not week(yld) or not y:
         return None
     return "repricing" if now > max(week(gap)) else "overshoot" if now < max(week(gap)) / 2 and y[1] < max(week(yld)) else "mixed"
-# Recession models: probit of a recession at some point in the next twelve months, fitted on 18 November 2026.
+# Recession models: probit of at least one recession month in the next twelve. The coefficients were fitted once, on 18 November 2026
+# (model/validate.py reproduces them and their checks), and are fixed: a run only applies them to the newest data. The history they
+# draw is a retrospective fit on today's revised data, not a record of forecasts made at the time.
 # United States: NBER dates, January 1972 to October 2024 (634 months). Brazil: CODACE dates, July 2003 to December 2024 (258 months).
 US_MODEL, US_MEAN = {"const": -0.3058, "spread": -0.4781, "permits": -0.0222, "nfci": 0.9837}, {"spread": 1.5549, "permits": -0.4791, "nfci": -0.0057}
 BR_MODEL, BR_MEAN = {"const": -0.3817, "dselic": 0.0618, "ibc": -0.1015}, {"dselic": -0.5561, "ibc": 1.9677}
@@ -298,13 +265,13 @@ def monthly(pairs): # average by calendar month
         acc.setdefault(d.replace(day=1), []).append(v)
     return {m: sum(v) / len(v) for m, v in acc.items()}
 
-def fill(series): # one missing month, such as October 2025 in the US shutdown, takes the average of its neighbours
-    for m in list(series):
-        if back(m, -2) in series and back(m, -1) not in series:
-            series[back(m, -1)] = (series[m] + series[back(m, -2)]) / 2
+def fill(series): # a single missing month repeats the month before it, so nothing published later ever enters an earlier month
+    for m in sorted(series):
+        if back(m, -1) not in series and back(m, -2) in series:
+            series[back(m, -1)] = series[m]
     return series
 
-def score(model, mean, x): # probability in percent, and each input's pull on it against its own average in the sample
+def score(model, mean, x): # probability in percent, and each input's pull against its own sample average, on the probit's own scale (not percentage points)
     z = model["const"] + sum(model[k] * x[k] for k in x)
     return 50 * (1 + math.erf(z / math.sqrt(2))), {k: round(model[k] * (x[k] - mean[k]), 2) for k in x}
 
@@ -341,10 +308,8 @@ def rec_br(): # change in the policy rate over twelve months, and six-month annu
     selic, ibc = monthly(sgs_long(4189, first)), monthly(sgs_long(24364, first))
     rows = {m: {"dselic": selic[m] - selic[back(m, 12)], "ibc": 200 * math.log(ibc[m] / ibc[back(m, 6)])}
             for m in selic if back(m, 12) in selic and m in ibc and back(m, 6) in ibc}
-    seen = max(rows) # the activity index arrives about two months late: its latest reading stands in for the months after it
-    for m in selic:
-        if m > seen and back(m, 12) in selic:
-            rows[m] = {"dselic": selic[m] - selic[back(m, 12)], "ibc": rows[seen]["ibc"]}
+    # The activity index arrives about two months late. The reading is dated by the newest month that has both inputs, as in the fit:
+    # pairing this month's policy rate with an older activity figure would feed the model a mix it was never fitted on.
     probs = {m: score(BR_MODEL, BR_MEAN, x) for m, x in rows.items()}
     rec_put("rec_br", [(m, p[0]) for m, p in probs.items()], 1)
     codace = set()
@@ -355,24 +320,37 @@ def rec_br(): # change in the policy rate over twelve months, and six-month annu
             m = back(m, -1)
     rec_put("codace", [(m, 1.0) for m in codace], 0)
     recent("br", probs, rows, "dselic")
-    recent("br", probs, rows, "ibc", seen)
+    recent("br", probs, rows, "ibc")
     REC.append({"id": "base_br", "date": "2024-12-01", "value": 30.2}) # the same share for Brazil, July 2003 to December 2024
     out = summary(probs, rows)
-    out["ibc_as_of"] = seen.isoformat()
+    out["ibc_as_of"] = out["as_of"]
     return out
 
-recession = {}
-for key, fn in (("br", rec_br), ("us", rec_us)):
-    try:
-        recession[key] = fn()
-    except Exception as e:
-        problems.append(f"recession_{key}: {e}")
-if REC:
-    rmeta = [meta[0], {"label": "Inputs", "value": "FRED: GS10, TB3MS, PERMIT, NFCI, USREC. Banco Central do Brasil SGS 4189 (policy rate, monthly) and 24364 (IBC-Br, seasonally adjusted). CODACE recession dates."},
-             {"label": "Model", "value": "Probit of a recession at some point in the next twelve months. United States, fitted on NBER dates from January 1972 to October 2024: area under the ROC curve 0.93 in sample and 0.88 when each recession is left out of the fit in turn. Brazil, fitted on CODACE dates from July 2003 to December 2024, three recessions: 0.76 and 0.71."},
-             {"label": "Run", "value": meta[2]["value"]}, {"label": "Skipped", "value": "; ".join(problems) or "none"}]
-    with open(os.path.join(OUT, "recession.json"), "w", encoding="utf-8") as f:
-        json.dump({"rows": REC, "meta": rmeta}, f, ensure_ascii=False, separators=(",", ":"))
+MODEL_NOTE = ("Probit of at least one recession month in the next twelve. Coefficients fitted once, on 18 November 2026, and fixed since: each run only applies "
+              "them to the newest data, so the history on the chart is a retrospective fit on today's revised figures, not a record of forecasts made at the time. "
+              "United States (NBER dates, January 1972 to October 2024): area under the ROC curve 0.93 in sample, 0.88 leaving each recession out of the fit, and 0.85 "
+              "when the model is refitted month by month on earlier data only (1990 to 2024). In that last test its squared error is 25% below that of always answering "
+              "the historical share, with a 90% interval from 17% above to 60% below, and forecasts above 50% were followed by a recession less than half the time. "
+              "Brazil (CODACE dates, July 2003 to December 2024, three recessions): 0.76 and 0.71, but 0.58 in the month-by-month test and no better than the "
+              "historical share: experimental. The area under the curve measures ranking, not accuracy. Code and full report: "
+              "github.com/c102030/regime-dashboard-scripts, folder model.")
+
+def recession_models(out_dir, meta): # both models or neither
+    recession = {}
+    del REC[:]
+    for key, fn in (("br", rec_br), ("us", rec_us)):
+        try:
+            recession[key] = fn()
+        except Exception as e:
+            problems.append(f"recession_{key}: {e}")
+    written = len(recession) == 2
+    if written:
+        REC.append({"id": "run", "date": TODAY.isoformat(), "value": 1.0}) # the day of this calculation, shown on the page
+        rmeta = [meta[0], {"label": "Inputs", "value": "FRED: GS10, TB3MS, PERMIT, NFCI, USREC. Banco Central do Brasil SGS 4189 (policy rate, monthly) and 24364 (IBC-Br, seasonally adjusted). CODACE recession dates."},
+                 {"label": "Model", "value": MODEL_NOTE}, {"label": "Run", "value": meta[2]["value"]}, {"label": "Skipped", "value": "; ".join(problems) or "none"}]
+        with open(os.path.join(out_dir, "recession.json"), "w", encoding="utf-8") as f:
+            json.dump({"rows": REC, "meta": rmeta}, f, ensure_ascii=False, separators=(",", ":"))
+    return recession, written
 
 # Digest for the written readings: the same rules the page applies, worked out here so the reader of the digest sees what the page shows.
 def signal(pts, kind, stress): # four-week move against its own typical four-week move over the year, signed so that positive is stress
@@ -388,22 +366,32 @@ def signal(pts, kind, stress): # four-week move against its own typical four-wee
     state = "unscored" if not stress or len(moves) < 3 or not typical else "worsening" if sc > 0.5 else "improving" if sc < -0.5 else "neutral"
     return state, round(move, 2), round(typical, 2), round(sc, 2)
 
-digest = {"run_sao_paulo": dt.datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M"), "intraday": LIVE, "recession": recession}
-for key, region in (("br", "Brazil"), ("us", "United States")):
-    part, counts = {}, {"worsening": 0, "improving": 0, "neutral": 0}
-    for r in latest:
-        if r["region"] != region:
-            continue
-        state = signal([p for p in S[r["id"]] if p[0] >= SHOW], r["kind"], r["stress"])[0]
-        counts[state] = counts.get(state, 0) + 1
-        part[r["id"]] = [r["value"], r["as_of"] + (" " + r["as_of_time"] if r.get("as_of_time") else ""), r["chg_1w"], r["chg_1m"], r["chg_3m"], r["chg_runoff"], state]
-    counts.pop("unscored", None)
-    digest[key] = {"signals": counts, "series": part}
-gap, yld = S.get("brl_resid"), S.get("br_nom_long")
-if gap and yld:
-    week = lambda rows: [v for d, v in rows if ANCHOR < d <= ANCHOR + dt.timedelta(days=7)]
-    digest["br"].update(read=read_at(-1), read_before=read_at(-2), gap_now=round(gap[-1][1], 1), gap_peak=round(max(week(gap)), 1),
-                        yield_now=round(yld[-1][1], 2), yield_peak=round(max(week(yld)), 2))
+def build_digest(latest, recession):
+    today = TODAY.isoformat()
+    digest = {"run_sao_paulo": dt.datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M"), "today": today, "intraday": dict(LIVE)}
+    if recession:
+        digest["recession"] = recession
+    for key, region in (("br", "Brazil"), ("us", "United States")):
+        part, counts, groups, same_day = {}, {"worsening": 0, "improving": 0, "neutral": 0}, {}, []
+        for r in latest:
+            if r["region"] != region:
+                continue
+            state = signal([p for p in S[r["id"]] if p[0] >= SHOW], r["kind"], r["stress"])[0]
+            counts[state] = counts.get(state, 0) + 1
+            if state != "unscored":
+                groups.setdefault(GROUP_OF.get(r["id"], "other"), []).append(state)
+            if r["as_of"] == today:
+                same_day.append(r["id"])
+            part[r["id"]] = [r["value"], r["as_of"] + (" " + r["as_of_time"] if r.get("as_of_time") else ""), r["chg_1w"], r["chg_1m"], r["chg_3m"], r["chg_runoff"], state]
+        counts.pop("unscored", None)
+        digest[key] = {"signals": counts, "groups": {g: {s: v.count(s) for s in ("worsening", "improving", "neutral") if v.count(s)} for g, v in groups.items()},
+                       "observed_today": same_day, "series": part}
+    gap, yld = S.get("brl_resid"), S.get("br_nom_long")
+    if gap and yld and "br" in digest:
+        week = lambda rows: [v for d, v in rows if ANCHOR < d <= ANCHOR + dt.timedelta(days=7)]
+        digest["br"].update(read=read_at(-1), read_before=read_at(-2), gap_now=round(gap[-1][1], 1), gap_peak=round(max(week(gap)), 1),
+                            yield_now=round(yld[-1][1], 2), yield_peak=round(max(week(yld)), 2))
+    return digest
 
 def ai_digest(): # the AI-trade read and the footprint of acceleration, as the page works them out from FRED
     first = (TODAY - dt.timedelta(days=800)).isoformat()
@@ -428,15 +416,74 @@ def ai_digest(): # the AI-trade read and the footprint of acceleration, as the p
     return {"read": ["continuation", "strain", "unwinding", "unwinding"][tests.count(False)], "lead": tests[0], "trend": tests[1], "credit": tests[2],
             "lead_gap": lead_gap, "trend_gap": trend, "bbb_now": bbb[-1][1], "bbb_move": move, "bbb_typical": typical, "ndx_now": ndx[-1][1], "as_of": end.isoformat(),
             "footprint": ["absent", "absent", "mixed", "visible", "visible"][foot.count(True)], "spend_now": round(spend_now, 1), "spend_then": round(spend_then, 1),
-            "chips_now": round(chips_now, 1), "chips_then": round(chips_then, 1), "real30_now": real[-1][1], "real30_avg": round(real_avg[real[-1][0]], 2)}
+            "chips_now": round(chips_now, 1), "chips_then": round(chips_then, 1), "chips_latest_month": round(chips[-1][1], 1), "real30_now": real[-1][1],
+            "real30_avg": round(real_avg[real[-1][0]], 2),
+            "dates": {"ndx": end.isoformat(), "bbb": bbb[-1][0].isoformat(), "real30": real[-1][0].isoformat(), "spend_quarter": spend[-1][0].isoformat(), "chips_month": chips[-1][0].isoformat()}}
 
-try:
-    digest["ai"] = ai_digest()
-except Exception as e:
-    problems.append(f"ai_digest: {e}")
-digest["problems"] = problems
-with open(os.path.join(OUT, "digest.json"), "w", encoding="utf-8") as f:
-    json.dump(digest, f, ensure_ascii=False, separators=(",", ":"))
-print(json.dumps({"ok": True, "series": len(latest), "rows": len(series), "problems": problems, "intraday": LIVE,
-                  "newest": max(r["as_of"] for r in latest), "brazil_read": read_at(-1), "brazil_read_before": read_at(-2),
-                  "recession": {k: [v["p"], v["as_of"]] for k, v in recession.items()}}))
+def main():
+    notes = {}
+    for sid, fn, arg in JOBS:
+        try:
+            put(sid, fn(arg), fn in (ptax, yahoo))
+            if arg in LIVE:
+                LIVE[sid] = LIVE.pop(arg)
+        except Exception as e:
+            problems.append(f"{sid}: {e}")
+    for name, fn in (("tesouro", tesouro), ("treasury_us", treasury_us), ("ecb_fx", ecb_fx)):
+        try:
+            notes = fn() or notes
+        except Exception as e:
+            problems.append(f"{name}: {e}")
+    try:
+        derived()
+    except Exception as e:
+        problems.append(f"derived: {e}")
+    if "us_claims" in S:
+        S["us_claims"] = [(d, v / 1000) for d, v in S["us_claims"]]
+
+    latest, series = [], []
+    for sid, (name, region, role, unit, dec, kind, stress, source) in IND.items():
+        if sid not in S:
+            continue
+        pairs = S[sid]
+        day, val = pairs[-1]
+        def change(ref_day, slack):
+            ref = at(pairs, ref_day)
+            if not ref or ref[0] == day or (ref_day - ref[0]).days > slack: # no observation near enough: leave empty
+                return None
+            return (round((val / ref[1] - 1) * 100, 1) if kind == "pct" else round(val - ref[1], max(dec, 2))) + 0.0
+        latest.append({"id": sid, "name": name + (f" ({notes[sid]})" if sid in notes else ""), "region": region, "role": role,
+                       "unit": unit, "value": round(val, dec) + 0.0, "dec": dec, "as_of": day.isoformat(), "kind": kind, "stress": stress,
+                       "chg_1w": change(day - dt.timedelta(days=7), 6), "chg_1m": change(day - dt.timedelta(days=30), 15),
+                       "chg_3m": change(day - dt.timedelta(days=91), 45), "chg_runoff": change(ANCHOR, 6) if day > ANCHOR else None,
+                       "source": source})
+        if day == TODAY and sid in LIVE:
+            latest[-1]["as_of_time"] = LIVE[sid]
+        series += [{"id": sid, "date": d.isoformat(), "value": round(v, 4)} for d, v in pairs if d >= SHOW]
+
+    missing = [k for k in ESSENTIAL if k not in S]
+    if missing or len(latest) < 20: # an essential series is missing, or so few arrived that a whole source failed
+        print(json.dumps({"ok": False, "series": len(latest), "missing_essential": missing, "problems": problems}))
+        sys.exit(2)
+    meta = [{"label": "fetch_regime.py", "value": open(os.path.abspath(__file__), encoding="utf-8").read(), "type": "code", "lang": "python"},
+            {"label": "Inputs", "value": "Banco Central do Brasil (SGS, Focus), Tesouro Transparente, European Central Bank, US Treasury, FRED, Yahoo Finance"},
+            {"label": "Run", "value": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")},
+            {"label": "Skipped", "value": "; ".join(problems) or "none"}]
+    for name, rows in (("latest.json", latest), ("series.json", series)):
+        with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
+            json.dump({"rows": rows, "meta": meta}, f, ensure_ascii=False, separators=(",", ":"))
+    recession, recession_file = recession_models(OUT, meta)
+    digest = build_digest(latest, recession if recession_file else {})
+    try:
+        digest["ai"] = ai_digest()
+    except Exception as e:
+        problems.append(f"ai_digest: {e}")
+    digest["problems"] = problems
+    with open(os.path.join(OUT, "digest.json"), "w", encoding="utf-8") as f:
+        json.dump(digest, f, ensure_ascii=False, separators=(",", ":"))
+    print(json.dumps({"ok": True, "series": len(latest), "rows": len(series), "problems": problems, "intraday": LIVE,
+                      "newest": max(r["as_of"] for r in latest), "brazil_read": read_at(-1), "brazil_read_before": read_at(-2),
+                      "recession_file": recession_file, "recession": {k: [v["p"], v["as_of"]] for k, v in recession.items()}}))
+
+if __name__ == "__main__":
+    main()
